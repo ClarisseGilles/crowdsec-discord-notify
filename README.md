@@ -8,11 +8,15 @@ CrowdSec sends one JSON object per ban to `POST /alert`. This process turns that
 
 ## Discord
 
-Create an application at https://discord.com/developers/applications. Open Bot, add a bot, and copy the token. Leave the Message Content Intent off. Leave the Interactions Endpoint URL empty. The process connects out to Discord.
+This bot deletes bans on your CrowdSec. Keep it private. With Public Bot off, only you can add it to a server. Put the alerts in a channel that only people who may unban can read. Anyone who can see that channel can press Unban.
 
-Invite it with the OAuth2 URL Generator, scope `bot`, permissions View Channels, Send Messages, and Embed Links.
-
-In the Discord client, turn on Developer Mode under Settings → Advanced. Right-click the alerts channel and choose Copy Channel ID. The bot has to be a member of that channel. Channel membership is the only check on Unban.
+1. Create an application at https://discord.com/developers/applications.
+2. Open Bot. Add a bot if the page asks for one. Press Reset Token and copy the token. That value is `DISCORD_BOT_TOKEN`. Discord shows it once. If it leaks, reset it again and update the container.
+3. Open Installation and set Install Link to None. Discord refuses to make the bot private while an install link is set. Then open Bot and turn Public Bot off.
+4. On the Bot page, leave Requires OAuth2 Code Grant off. Leave Message Content Intent off, along with the other privileged intents. Leave the Interactions Endpoint URL empty. This process opens its own connection to Discord. It does not take interaction callbacks on a public URL.
+5. Open OAuth2 → URL Generator. Select the `bot` scope. Under bot permissions, select View Channels, Send Messages, and Embed Links. Those three are permission integer `19456`. The URL is `https://discord.com/oauth2/authorize?client_id=APPLICATION_ID&scope=bot&permissions=19456`, with your application ID in place of `APPLICATION_ID`. Open it and add the bot to your server. You need Manage Server on that Discord server to install it.
+6. In the Discord client, open User Settings → Advanced and turn on Developer Mode. Right-click the alerts channel and choose Copy Channel ID. That value is `DISCORD_CHANNEL_ID`.
+7. In the channel permissions, allow the bot to view the channel, send messages, and embed links. Deny everyone else if they should not be able to unban.
 
 CrowdSec needs a bouncer key that this process can use to delete decisions. On the official image, set `BOUNCER_KEY_DISCORD` to that key and it registers a bouncer on startup. Use the same value for `BOUNCER_KEY` here.
 
@@ -41,6 +45,8 @@ podman run --rm -p 8080:8080 \
 ```
 
 `docker run` takes the same arguments. The image is `linux/amd64` and `linux/arm64`.
+
+The image does not contain your Discord token, bouncer key, or CrowdSec address. Those exist only in the environment of the container you run. Leave the GitHub package private.
 
 A CrowdSec CTI API key is configured on CrowdSec, not here. The notification below uses it to fill `city` and `maliciousness`.
 
