@@ -51,10 +51,22 @@ func (a *App) onClick(session *discordgo.Session, click *discordgo.InteractionCr
 	if err = a.deleteDecision(ctx, scope, value); err != nil {
 		log.Printf("delete decision %s %s: %v", scope, value, err)
 		text = "CrowdSec did not remove " + value
+	} else {
+		log.Printf("unbanned %s %s by %s", scope, value, clicker(click))
 	}
 	if _, err = session.InteractionResponseEdit(click.Interaction, &discordgo.WebhookEdit{Content: &text}); err != nil {
 		log.Printf("edit unban reply: %v", err)
 	}
+}
+
+func clicker(click *discordgo.InteractionCreate) string {
+	if click.Member != nil && click.Member.User != nil {
+		return click.Member.User.Username
+	}
+	if click.User != nil {
+		return click.User.Username
+	}
+	return "unknown"
 }
 
 func (a *App) embed(item alert) *discordgo.MessageEmbed {

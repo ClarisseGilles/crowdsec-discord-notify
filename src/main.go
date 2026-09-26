@@ -41,6 +41,11 @@ func main() {
 	if err = session.Open(); err != nil {
 		log.Fatal(err)
 	}
+	maps := "off"
+	if cfg.GeoapifyAPIKey != "" {
+		maps = "on"
+	}
+	log.Printf("starting on :8080, lapi %s, machine %s, channel %s, maps %s", cfg.LAPIURL, cfg.MachineID, cfg.DiscordChannelID, maps)
 	http.HandleFunc("POST /alert", app.receive)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
@@ -67,13 +72,17 @@ func getenv(name string) string {
 func (a *App) receive(w http.ResponseWriter, r *http.Request) {
 	var alerts []alert
 	if json.NewDecoder(r.Body).Decode(&alerts) != nil {
+		log.Printf("alert: bad request")
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
+	log.Printf("received %d ban(s)", len(alerts))
 	for _, item := range alerts {
 		if err := a.postBan(item); err != nil {
 			log.Printf("alert %s %s: %v", item.Scope, item.Value, err)
+			continue
 		}
+		log.Printf("posted %s %s %s", item.Scope, item.Value, item.Scenario)
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
