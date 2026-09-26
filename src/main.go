@@ -14,7 +14,8 @@ type Config struct {
 	DiscordBotToken  string
 	DiscordChannelID string
 	LAPIURL          string
-	BouncerKey       string
+	MachineID        string
+	MachinePassword  string
 	GeoapifyAPIKey   string
 }
 
@@ -49,7 +50,8 @@ func loadConfig() Config {
 		DiscordBotToken:  getenv("DISCORD_BOT_TOKEN"),
 		DiscordChannelID: getenv("DISCORD_CHANNEL_ID"),
 		LAPIURL:          getenv("LAPI_URL"),
-		BouncerKey:       getenv("BOUNCER_KEY"),
+		MachineID:        getenv("MACHINE_ID"),
+		MachinePassword:  getenv("MACHINE_PASSWORD"),
 		GeoapifyAPIKey:   os.Getenv("GEOAPIFY_API_KEY"),
 	}
 }

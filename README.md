@@ -18,7 +18,7 @@ This bot deletes bans on your CrowdSec. Keep it private. With Public Bot off, on
 6. In the Discord client, open User Settings → Advanced and turn on Developer Mode. Right-click the alerts channel and choose Copy Channel ID. That value is `DISCORD_CHANNEL_ID`.
 7. In the channel permissions, allow the bot to view the channel, send messages, and embed links. Deny everyone else if they should not be able to unban.
 
-CrowdSec needs a bouncer key that this process can use to delete decisions. On the official image, set `BOUNCER_KEY_DISCORD` to that key and it registers a bouncer on startup. Use the same value for `BOUNCER_KEY` here.
+Deleting a ban needs a CrowdSec machine login. A bouncer key cannot delete decisions. On the official CrowdSec image, set `AGENT_USERNAME` and `AGENT_PASSWORD` to register that machine on startup. Use the same values for `MACHINE_ID` and `MACHINE_PASSWORD` here.
 
 ## Configuration
 
@@ -26,7 +26,8 @@ CrowdSec needs a bouncer key that this process can use to delete decisions. On t
 | --- | --- | --- |
 | `DISCORD_BOT_TOKEN` | yes | Bot token from the Discord developer portal |
 | `DISCORD_CHANNEL_ID` | yes | Channel that receives alerts |
-| `BOUNCER_KEY` | yes | CrowdSec bouncer key sent as `X-Api-Key` when deleting a decision |
+| `MACHINE_ID` | yes | CrowdSec machine login, the same value as `AGENT_USERNAME` |
+| `MACHINE_PASSWORD` | yes | CrowdSec machine password, the same value as `AGENT_PASSWORD` |
 | `LAPI_URL` | yes | CrowdSec Local API, for example `http://crowdsec:8080` |
 | `GEOAPIFY_API_KEY` | no | Draws a map on the alert. If this is unset, the message is sent without a map |
 
@@ -38,15 +39,16 @@ Listens on port 8080.
 podman run --rm -p 8080:8080 \
   -e DISCORD_BOT_TOKEN \
   -e DISCORD_CHANNEL_ID \
-  -e BOUNCER_KEY \
+  -e MACHINE_ID \
+  -e MACHINE_PASSWORD \
   -e LAPI_URL \
   -e GEOAPIFY_API_KEY \
-  ghcr.io/clarissegilles/crowdsec-discord-notify:0.1.0
+  ghcr.io/clarissegilles/crowdsec-discord-notify:0.1.1
 ```
 
 `docker run` takes the same arguments. The image is `linux/amd64` and `linux/arm64`.
 
-The image does not contain your Discord token, bouncer key, or CrowdSec address. Those exist only in the environment of the container you run. Leave the GitHub package private.
+The image does not contain your Discord token, machine password, or CrowdSec address. Those exist only in the environment of the container you run. Leave the GitHub package private.
 
 A CrowdSec CTI API key is configured on CrowdSec, not here. The notification below uses it to fill `city` and `maliciousness`.
 
@@ -65,24 +67,24 @@ format: |
   {{- range . -}}
     {{- $alert := . -}}
     {{- range .Decisions -}}
-      {{- if eq .Type "ban" -}}
+      {{- if eq (trim .Type) "ban" -}}
         {{- $city := "" -}}
         {{- $country := "" -}}
         {{- $mal := 0.0 -}}
-        {{- if $alert.Source.Cn -}}{{- $country = printf "%s" $alert.Source.Cn -}}{{- end -}}
-        {{- if eq .Scope "Ip" -}}
-          {{- $cti := .Value | CrowdsecCTI -}}
+        {{- if $alert.Source.Cn -}}{{- $country = trim $alert.Source.Cn -}}{{- end -}}
+        {{- if eq (trim .Scope) "Ip" -}}
+          {{- $cti := trim .Value | CrowdsecCTI -}}
           {{- if $cti.Location.City -}}
-            {{- $city = printf "%s" $cti.Location.City -}}
+            {{- $city = trim $cti.Location.City -}}
             {{- $mal = mulf $cti.GetMaliciousnessScore 100 | floor -}}
             {{- if gt $mal 100.0 -}}{{- $mal = 100.0 -}}{{- end -}}
           {{- end -}}
         {{- end -}}
         {{- $out = append $out (dict
-              "scope" .Scope
-              "value" .Value
-              "scenario" .Scenario
-              "duration" .Duration
+              "scope" (trim .Scope)
+              "value" (trim .Value)
+              "scenario" (trim .Scenario)
+              "duration" (trim .Duration)
               "country" $country
               "latitude" $alert.Source.Latitude
               "longitude" $alert.Source.Longitude
