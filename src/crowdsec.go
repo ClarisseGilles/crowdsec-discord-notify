@@ -66,11 +66,10 @@ func (a *App) deleteDecision(ctx context.Context, scope, value string) (string, 
 		return "", fmt.Errorf("unable to delete decisions: empty response")
 	}
 	count := strings.Trim(string(deleted.NbDeleted), `"`)
-	text := count + " decision(s) deleted for ip " + value
 	if count == "0" {
-		return text, fmt.Errorf("delete decision %s: nothing removed, did the ban expire already?", value)
+		return "", fmt.Errorf("nothing removed for ip %s, did the ban expire already?", value)
 	}
-	return text, nil
+	return count + " decision(s) deleted for ip " + value, nil
 }
 
 func (a *App) login(ctx context.Context) (string, error) {
