@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 type alert struct {
@@ -59,14 +60,15 @@ func (a *App) deleteDecision(ctx context.Context, scope, value string) (string, 
 		return "", fmt.Errorf("unable to delete decisions: %s", response.Status)
 	}
 	var deleted struct {
-		NbDeleted string `json:"nbDeleted"`
+		NbDeleted json.RawMessage `json:"nbDeleted"`
 	}
-	if json.NewDecoder(response.Body).Decode(&deleted) != nil || deleted.NbDeleted == "" {
+	if json.NewDecoder(response.Body).Decode(&deleted) != nil || len(deleted.NbDeleted) == 0 {
 		return "", fmt.Errorf("unable to delete decisions: empty response")
 	}
-	text := deleted.NbDeleted + " decision(s) deleted"
-	if deleted.NbDeleted == "0" {
-		return text, fmt.Errorf("delete decision %s: nothing removed", value)
+	count := strings.Trim(string(deleted.NbDeleted), `"`)
+	text := count + " decision(s) deleted for ip " + value
+	if count == "0" {
+		return text, fmt.Errorf("delete decision %s: nothing removed, did the ban expire already?", value)
 	}
 	return text, nil
 }
