@@ -47,10 +47,12 @@ func (a *App) onClick(session *discordgo.Session, click *discordgo.InteractionCr
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	text := "Unbanned " + value
-	if err = a.deleteDecision(ctx, scope, value); err != nil {
+	text, err := a.deleteDecision(ctx, scope, value)
+	if err != nil {
 		log.Printf("delete decision %s %s: %v", scope, value, err)
-		text = "CrowdSec did not remove " + value
+		if text == "" {
+			text = err.Error()
+		}
 	} else {
 		log.Printf("unbanned %s %s by %s", scope, value, clicker(click))
 	}
