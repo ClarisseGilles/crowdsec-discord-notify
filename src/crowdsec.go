@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 )
@@ -56,21 +55,17 @@ func (a *App) deleteDecision(ctx context.Context, scope, value string) (string, 
 		return "", err
 	}
 	defer response.Body.Close()
-	raw, err := io.ReadAll(io.LimitReader(response.Body, 2000))
-	if err != nil {
-		return "", err
-	}
-	text := string(raw)
-	if text == "" {
-		text = response.Status
-	}
 	if response.StatusCode != http.StatusOK {
-		return text, fmt.Errorf("delete decision %s: %s", value, response.Status)
+		return "", fmt.Errorf("unable to delete decisions: %s", response.Status)
 	}
 	var deleted struct {
 		NbDeleted string `json:"nbDeleted"`
 	}
-	if json.Unmarshal(raw, &deleted) != nil || deleted.NbDeleted == "" || deleted.NbDeleted == "0" {
+	if json.NewDecoder(response.Body).Decode(&deleted) != nil || deleted.NbDeleted == "" {
+		return "", fmt.Errorf("unable to delete decisions: empty response")
+	}
+	text := deleted.NbDeleted + " decision(s) deleted"
+	if deleted.NbDeleted == "0" {
 		return text, fmt.Errorf("delete decision %s: nothing removed", value)
 	}
 	return text, nil
